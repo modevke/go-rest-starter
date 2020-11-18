@@ -9,6 +9,8 @@ import(
 	"os"
 	"fmt"
 	"net/http"
+	"os/signal"
+	"syscall"
 
 	// EXTERNAL LIBS
 	"github.com/joho/godotenv"
@@ -68,31 +70,23 @@ func main(){
 		ReadHeaderTimeout: 2 * time.Second,
 	}
 
-	// SIMPLE WAY TO START SERVER
-	log.Fatal(app.ListenAndServe())
 
-	// TODO COMPLEX WAY TO START AND MANAGE SERVER
-	// sigs := make(chan os.Signal, 1)
-	// signal.Notify(sigs, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+	// CREATE A SYSCALL CHANNEL TO MAINTAIN CONNECTION
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	
-	// go func(){
-	// 	defer close(sigs)
-	// 	if serr := app.ListenAndServe(); serr != http.ErrServerClosed{
-	// 		switch err{
-	// 		case nil:
-	// 			err = fmt.Errorf("unable to start server: %v", serr)
-	// 		default:
-	// 			err = errors.Wrapf(err, "unable to start server: %v", serr)
+	go func(){
+		defer close(sigs)
+		if serr := app.ListenAndServe(); serr != http.ErrServerClosed{
+			err = fmt.Errorf("Unable to start server: %v", serr)
+		} 
 
-	// 		}
-	// 	}
-
-	// }()
-
-	// log.Printf("Server sterted succesfully")
-	// s := <-sigs
-	// err = fmt.Errorf("shutting down server because of: %v: %v", s, err)
+	}()
+	log.Printf("Server started succesfully")
+	s := <-sigs
+	err = fmt.Errorf("Shutting down server because of: %v: %v", s, err)
 	
+
 	// ctx, cancel := context.WithCancel(context.Background())
 	// defer cancel()
 
@@ -105,9 +99,6 @@ func main(){
 	// default:
 	// 	log.Printf("unable to stop server: %v", serr)
 	// }
-
-
-
 
 
 }
