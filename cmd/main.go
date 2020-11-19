@@ -11,6 +11,7 @@ import(
 	"net/http"
 	"os/signal"
 	"syscall"
+	"context"
 
 	// EXTERNAL LIBS
 	"github.com/joho/godotenv"
@@ -32,7 +33,7 @@ func init(){
 func main(){
 	// INITIALIZE THE ERROR OBJECT
 	var err error
-	// RUN AFTER MAIN IS EXITED
+	// RUN AFTER MAIN IS EXITED  
 	defer func(){
 		if err != nil {
 			log.Fatalln(err)
@@ -57,6 +58,11 @@ func main(){
 		return
 	}
 	routes := interfaces.Routing()
+
+
+	// CREATE APPLICATION CONTEXT
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 
 	// SERVER
@@ -85,20 +91,17 @@ func main(){
 	log.Printf("Server started succesfully")
 	s := <-sigs
 	err = fmt.Errorf("Shutting down server because of: %v: %v", s, err)
-	
 
-	// ctx, cancel := context.WithCancel(context.Background())
-	// defer cancel()
-
-	// stx, sc := context.WithTimeout(ctx, time.Second*5)
-	// defer sc()
-	// serr := app.Shutdown(stx)
-	// switch serr {
-	// case nil:
-	// 	log.Printf("server stopped gracefully")
-	// default:
-	// 	log.Printf("unable to stop server: %v", serr)
-	// }
+	// SHUTDOWN SERVER PROCESSES  
+	stx, sc := context.WithTimeout(ctx, time.Second*5)
+	defer sc()
+	serr := app.Shutdown(stx)
+	switch serr {
+	case nil:
+		log.Printf("server stopped gracefully")
+	default:
+		log.Printf("unable to stop server: %v", serr)
+	}
 
 
 }
